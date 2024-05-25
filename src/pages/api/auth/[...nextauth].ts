@@ -1,5 +1,6 @@
+import { NextApiRequest, NextApiResponse } from "next"
 import NextAuth from "next-auth"
-import FacebookProvider, { FacebookProfile } from "next-auth/providers/facebook"
+import FacebookProvider from "next-auth/providers/facebook"
 
 export const authOptions = {
   // Configure one or more authentication providers
@@ -7,13 +8,16 @@ export const authOptions = {
     FacebookProvider({
       clientId: process.env.FACEBOOK_CLIENT_ID ?? '',
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET ?? '',
-      profile: (profile: FacebookProfile) => {
-        return {
-          id: profile.id,
-          name: profile.name,
-          username: '',
-          email: profile.email,
-          image: profile.picture,
+      authorization: {
+        params: {
+          prompt: 'consent',
+          access_type: 'offline',
+          response_type: 'code',
+        }
+      },
+      userinfo: {
+        params: {
+          fields: "id,name,email,picture.type(large)"
         }
       }
     }),
@@ -30,8 +34,14 @@ export const authOptions = {
     async session({ session, token, user }) {
       // Send properties to the client, like an access_token from a provider.
       session.accessToken = token.accessToken
+      session.user.id = token.sub
       return session
     },
   }
 }
-export default NextAuth(authOptions)
+
+export default async function auth(req: NextApiRequest, res: NextApiResponse) {
+  // Do stuff here ...
+
+  return await NextAuth(req, res, authOptions)
+}
